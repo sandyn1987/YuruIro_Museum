@@ -29,13 +29,6 @@ document.body.appendChild(renderer.domElement);
 
 // デバイス判定
 const isMobile = /iPhone|iPad|Android/i.test(navigator.userAgent);
-if (isMobile) {
-  // タッチ操作を有効化
-  enableTouchControls();
-} else {
-  // PointerLockControls
-  controls = new PointerLockControls(camera, document.body);
-}
 
 /* =========================
    ライト（美術館向け）
@@ -190,8 +183,8 @@ function updateMovement() {
     }
   } else {
     direction.set(0, 0, 0);
-    if (keyState['KeyW']) direction.z -= 1;
-    if (keyState['KeyS']) direction.z += 1;
+    if (keyState['KeyS']) direction.z -= 1;
+    if (keyState['KeyW']) direction.z += 1;
     if (keyState['KeyA']) direction.x -= 1;
     if (keyState['KeyD']) direction.x += 1;
 
