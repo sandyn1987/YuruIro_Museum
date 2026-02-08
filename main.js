@@ -117,6 +117,7 @@ for (let i = 0; i < artworkCount; i++) {
 let controls = null;
 const keyState = {};
 
+// PC操作
 if (!isMobile) {
   controls = new PointerLockControls(camera, document.body);
 
@@ -149,66 +150,63 @@ function rotateCamera(deltaX, deltaY) {
   camera.rotation.z = 0; // ★ロール完全禁止
 }
 
-// 仮想ジョイスティック移動
+// 仮想ジョイスティック移動（モバイルのみ）
 let moveX = 0;
 let moveY = 0;
 let joystickActive = false;
 let startX = 0;
 let startY = 0;
-
-const joystick = document.getElementById('joystick-area');
-const joystickBase = document.getElementById('joystick-base');
-const joystickStick = document.getElementById('joystick-stick');
-const JOYSTICK_RADIUS = 40;
-
-joystick.addEventListener('pointerdown', (e) => {
-  joystickActive = true;
-  startX = e.clientX;
-  startY = e.clientY;
-  joystickBase.style.left = (startX - JOYSTICK_RADIUS) + 'px';
-  joystickBase.style.top = (startY - JOYSTICK_RADIUS) + 'px';
-  joystickBase.style.display = 'block';
-});
-
-window.addEventListener('pointermove', (e) => {
-  if (!joystickActive) return;
-
-  const dx = e.clientX - startX;
-  const dy = e.clientY - startY;
-
-  moveX = THREE.MathUtils.clamp(dx / 40, -1, 1);
-  moveY = THREE.MathUtils.clamp(dy / 40, -1, 1);
-
-  // スティックの位置を更新
-  joystickStick.style.left = (20 + dx * 0.5) + 'px';
-  joystickStick.style.top = (20 + dy * 0.5) + 'px';
-});
-
-window.addEventListener('pointerup', () => {
-  joystickActive = false;
-  moveX = 0;
-  moveY = 0;
-  joystickBase.style.display = 'none';
-  joystickStick.style.left = '20px';
-  joystickStick.style.top = '20px';
-});
-
-// 右画面半分ドラッグで回転（PC環境のみ）
 let isRotating = false;
 let lastX = 0;
 let lastY = 0;
 
-if (!isMobile){
-  document.addEventListener('pointerdown', (e) => {
-    // 画面右半分のみ、ジョイスティック外
-    if (joystickActive) return;
-    if (e.clientX > window.innerWidth / 2) {
-      isRotating = true;
-      lastX = e.clientX;
-      lastY = e.clientY;
-    }
+if (isMobile) {
+  const joystick = document.getElementById('joystick-area');
+  const joystickBase = document.getElementById('joystick-base');
+  const joystickStick = document.getElementById('joystick-stick');
+  const JOYSTICK_RADIUS = 40;
+
+  joystick.addEventListener('pointerdown', (e) => {
+    joystickActive = true;
+    startX = e.clientX;
+    startY = e.clientY;
+    joystickBase.style.left = (startX - JOYSTICK_RADIUS) + 'px';
+    joystickBase.style.top = (startY - JOYSTICK_RADIUS) + 'px';
+    joystickBase.style.display = 'block';
   });
-  document.addEventListener('pointermove', (e) => {
+
+  window.addEventListener('pointermove', (e) => {
+    if (!joystickActive) return;
+
+    const dx = e.clientX - startX;
+    const dy = e.clientY - startY;
+
+    moveX = THREE.MathUtils.clamp(dx / 40, -1, 1);
+    moveY = THREE.MathUtils.clamp(-dy / 40, -1, 1); // 符号反転：上へドラッグ = 前進
+
+    // スティックの位置を更新
+    joystickStick.style.left = (20 + dx * 0.5) + 'px';
+    joystickStick.style.top = (20 + dy * 0.5) + 'px';
+  });
+
+  window.addEventListener('pointerup', () => {
+    joystickActive = false;
+    moveX = 0;
+    moveY = 0;
+    joystickBase.style.display = 'none';
+    joystickStick.style.left = '20px';
+    joystickStick.style.top = '20px';
+  });
+
+  // モバイル：全画面タッチドラッグで視点回転
+  window.addEventListener('pointerdown', (e) => {
+    if (joystickActive) return; // ジョイスティック使用中は無効
+    isRotating = true;
+    lastX = e.clientX;
+    lastY = e.clientY;
+  });
+
+  window.addEventListener('pointermove', (e) => {
     if (!isRotating) return;
 
     const dx = e.clientX - lastX;
@@ -220,10 +218,37 @@ if (!isMobile){
     lastY = e.clientY;
   });
 
-  document.addEventListener('pointerup', () => {
+  window.addEventListener('pointerup', () => {
     isRotating = false;
   });
 }
+
+// if (!isMobile){
+//   document.addEventListener('pointerdown', (e) => {
+//     // 画面右半分のみ、ジョイスティック外
+//     if (joystickActive) return;
+//     if (e.clientX > window.innerWidth / 2) {
+//       isRotating = true;
+//       lastX = e.clientX;
+//       lastY = e.clientY;
+//     }
+//   });
+//   document.addEventListener('pointermove', (e) => {
+//     if (!isRotating) return;
+
+//     const dx = e.clientX - lastX;
+//     const dy = e.clientY - lastY;
+
+//     rotateCamera(dx, dy);
+
+//     lastX = e.clientX;
+//     lastY = e.clientY;
+//   });
+
+//   document.addEventListener('pointerup', () => {
+//     isRotating = false;
+//   });
+// }
 
 
 
