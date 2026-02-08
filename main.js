@@ -10,7 +10,7 @@ import { PointerLockControls } from 'https://cdn.jsdelivr.net/npm/three@0.160.0/
 ========================= */
 const scene = new THREE.Scene();
 scene.background = new THREE.Color(0xf2f2f2);
-const isMobile = /iPhone|iPad|Android/i.test(navigator.userAgent);
+
 
 const camera = new THREE.PerspectiveCamera(
   75,
@@ -27,52 +27,15 @@ renderer.shadowMap.enabled = true;
 renderer.shadowMap.type = THREE.PCFSoftShadowMap;
 document.body.appendChild(renderer.domElement);
 
-// タッチ操作対応
-let yaw = 0;
-let pitch = 0;
-let lastX = 0;
-let lastY = 0;
-let touching = false;
-const speed = 0.03;
-
-const sensitivity = 0.002;
-
-window.addEventListener('touchstart', e => {
-  touching = true;
-  lastX = e.touches[0].clientX;
-  lastY = e.touches[0].clientY;
-});
-
-window.addEventListener('touchmove', e => {
-  if (!touching) return;
-
-  const x = e.touches[0].clientX;
-  const y = e.touches[0].clientY;
-
-  yaw -= (x - lastX) * sensitivity;
-  pitch -= (y - lastY) * sensitivity;
-
-  pitch = Math.max(-Math.PI / 2 + 0.1, Math.min(Math.PI / 2 - 0.1, pitch));
-
-  camera.rotation.set(pitch, yaw, 0);
-
-  lastX = x;
-  lastY = y;
-});
-
-window.addEventListener('touchend', () => {
-  touching = false;
-});
-
-let movingForward = false;
-
-window.addEventListener('touchstart', () => {
-  movingForward = true;
-});
-
-window.addEventListener('touchend', () => {
-  movingForward = false;
-});
+// デバイス判定
+const isMobile = /iPhone|iPad|Android/i.test(navigator.userAgent);
+if (isMobile) {
+  // タッチ操作を有効化
+  enableTouchControls();
+} else {
+  // PointerLockControls
+  controls = new PointerLockControls(camera, document.body);
+}
 
 /* =========================
    ライト（美術館向け）
@@ -146,16 +109,100 @@ for (let i = 0; i < artworkCount; i++) {
 /* =========================
    移動操作（FPS風・ゆっくり）
 ========================= */
-const controls = new PointerLockControls(camera, document.body);
-document.body.addEventListener('click', () => controls.lock());
+// const controls = new PointerLockControls(camera, document.body);
+// document.body.addEventListener('click', () => controls.lock());
 
-const keys = {};
-document.addEventListener('keydown', (e) => keys[e.code] = true);
-document.addEventListener('keyup', (e) => keys[e.code] = false);
+// const keys = {};
+// document.addEventListener('keydown', (e) => keys[e.code] = true);
+// document.addEventListener('keyup', (e) => keys[e.code] = false);
 
-const moveSpeed = 3.0;
+// const moveSpeed = 3.0;
+// const velocity = new THREE.Vector3();
+// const direction = new THREE.Vector3();
+
+let controls;
+const keyState = {};
+
+if (!isMobile) {
+  controls = new PointerLockControls(camera, document.body);
+
+  document.body.addEventListener('click', () => {
+    controls.lock();
+  });
+
+  document.addEventListener('keydown', e => keyState[e.code] = true);
+  document.addEventListener('keyup', e => keyState[e.code] = false);
+}
+
+// タッチ操作対応
+let yaw = 0;
+let pitch = 0;
+let lastX = 0;
+let lastY = 0;
+let touching = false;
+let movingForward = false;
+
+if (isMobile) {
+  const sensitivity = 0.002;
+
+  window.addEventListener('touchstart', e => {
+    touching = true;
+    movingForward = true;
+    lastX = e.touches[0].clientX;
+    lastY = e.touches[0].clientY;
+  }, { passive: true });
+
+  window.addEventListener('touchmove', e => {
+    if (!touching) return;
+
+    const x = e.touches[0].clientX;
+    const y = e.touches[0].clientY;
+
+    yaw   -= (x - lastX) * sensitivity;
+    pitch -= (y - lastY) * sensitivity;
+
+    pitch = Math.max(-Math.PI / 2 + 0.1, Math.min(Math.PI / 2 - 0.1, pitch));
+
+    camera.rotation.set(pitch, yaw, 0);
+
+    lastX = x;
+    lastY = y;
+  }, { passive: true });
+
+  window.addEventListener('touchend', () => {
+    touching = false;
+    movingForward = false;
+  });
+}
+
+// --------------------
+// 移動ロジック共通
+// --------------------
 const velocity = new THREE.Vector3();
 const direction = new THREE.Vector3();
+const speed = isMobile ? 0.03 : 0.06;
+
+function updateMovement() {
+  if (isMobile) {
+    if (movingForward) {
+      camera.getWorldDirection(direction);
+      camera.position.addScaledVector(direction, speed);
+    }
+  } else {
+    direction.set(0, 0, 0);
+    if (keyState['KeyW']) direction.z -= 1;
+    if (keyState['KeyS']) direction.z += 1;
+    if (keyState['KeyA']) direction.x -= 1;
+    if (keyState['KeyD']) direction.x += 1;
+
+    direction.normalize();
+
+    if (controls.isLocked) {
+      controls.moveRight(direction.x * speed);
+      controls.moveForward(direction.z * speed);
+    }
+  }
+}
 
 /* =========================
    Artwork画像設定
@@ -212,26 +259,27 @@ window.addEventListener('resize', () => {
 function animate() {
   requestAnimationFrame(animate);
 
-  direction.set(0, 0, 0);
-  if (keys['KeyS']) direction.z -= 1;
-  if (keys['KeyW']) direction.z += 1;
-  if (keys['KeyA']) direction.x -= 1;
-  if (keys['KeyD']) direction.x += 1;
+  updateMovement();
+  // direction.set(0, 0, 0);
+  // if (keys['KeyS']) direction.z -= 1;
+  // if (keys['KeyW']) direction.z += 1;
+  // if (keys['KeyA']) direction.x -= 1;
+  // if (keys['KeyD']) direction.x += 1;
 
-  direction.normalize();
-  velocity.copy(direction).multiplyScalar(moveSpeed * 0.016);
+  // direction.normalize();
+  // velocity.copy(direction).multiplyScalar(moveSpeed * 0.016);
 
-  controls.moveRight(velocity.x);
-  controls.moveForward(velocity.z);
+  // controls.moveRight(velocity.x);
+  // controls.moveForward(velocity.z);
   
-  spotHelpers.forEach(h => h.update());
+  // spotHelpers.forEach(h => h.update());
 
-  if (movingForward) {
-    const dir = new THREE.Vector3();
-    camera.getWorldDirection(dir);
-    camera.position.addScaledVector(dir, speed);
-  }
-  
+  // if (movingForward) {
+  //   const dir = new THREE.Vector3();
+  //   camera.getWorldDirection(dir);
+  //   camera.position.addScaledVector(dir, speed);
+  // }
+
   renderer.render(scene, camera);
 }
 
