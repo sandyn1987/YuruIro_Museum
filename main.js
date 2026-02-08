@@ -159,8 +159,41 @@ let startY = 0;
 const joystick = document.getElementById('joystick-area');
 const joystickBase = document.getElementById('joystick-base');
 const joystickStick = document.getElementById('joystick-stick');
+const JOYSTICK_RADIUS = 40;
 
-// 右画面半分ドラッグで回転
+joystick.addEventListener('pointerdown', (e) => {
+  joystickActive = true;
+  startX = e.clientX;
+  startY = e.clientY;
+  joystickBase.style.left = (startX - JOYSTICK_RADIUS) + 'px';
+  joystickBase.style.top = (startY - JOYSTICK_RADIUS) + 'px';
+  joystickBase.style.display = 'block';
+});
+
+window.addEventListener('pointermove', (e) => {
+  if (!joystickActive) return;
+
+  const dx = e.clientX - startX;
+  const dy = e.clientY - startY;
+
+  moveX = THREE.MathUtils.clamp(dx / 40, -1, 1);
+  moveY = THREE.MathUtils.clamp(dy / 40, -1, 1);
+
+  // スティックの位置を更新
+  joystickStick.style.left = (20 + dx * 0.5) + 'px';
+  joystickStick.style.top = (20 + dy * 0.5) + 'px';
+});
+
+window.addEventListener('pointerup', () => {
+  joystickActive = false;
+  moveX = 0;
+  moveY = 0;
+  joystickBase.style.display = 'none';
+  joystickStick.style.left = '20px';
+  joystickStick.style.top = '20px';
+});
+
+// 右画面半分ドラッグで回転（PC環境のみ）
 let isRotating = false;
 let lastX = 0;
 let lastY = 0;
@@ -191,28 +224,6 @@ if (!isMobile){
     isRotating = false;
   });
 }
-
-joystick.addEventListener('pointerdown', (e) => {
-  joystickActive = true;
-  startX = e.clientX;
-  startY = e.clientY;
-});
-
-window.addEventListener('pointermove', (e) => {
-  if (!joystickActive) return;
-
-  const dx = e.clientX - startX;
-  const dy = e.clientY - startY;
-
-  moveX = THREE.MathUtils.clamp(dx / 40, -1, 1);
-  moveY = THREE.MathUtils.clamp(dy / 40, -1, 1);
-});
-
-window.addEventListener('pointerup', () => {
-  joystickActive = false;
-  moveX = 0;
-  moveY = 0;
-});
 
 
 
