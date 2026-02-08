@@ -19,6 +19,11 @@ const camera = new THREE.PerspectiveCamera(
   100
 );
 camera.position.set(0, 1.6, 3);
+// カメラの回転順序を 'YXZ' に設定（Y軸→X軸→Z軸）
+camera.rotation.order = 'YXZ';
+camera.rotation.y = Math.PI;  // Y軸（上下）回転：180°
+camera.rotation.x = 0;        // X軸（前後）回転：0°
+camera.rotation.z = 0;        // Z軸（ロール）回転：0°（禁止）
 
 const renderer = new THREE.WebGLRenderer({ antialias: true });
 renderer.setSize(window.innerWidth, window.innerHeight);
@@ -144,7 +149,6 @@ function rotateCamera(deltaX, deltaY) {
     Math.min(Math.PI / 2 - 0.01, pitch)
   );
 
-  camera.rotation.order = 'YXZ';
   camera.rotation.y = yaw;
   camera.rotation.x = pitch;
   camera.rotation.z = 0; // ★ロール完全禁止
