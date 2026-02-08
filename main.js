@@ -129,7 +129,7 @@ if (!isMobile) {
   document.addEventListener('keyup', e => keyState[e.code] = false);
 }
 // カメラ回転
-let yaw = 0;
+let yaw = Math.PI;  // 初期向き：180°
 let pitch = 0;
 
 function rotateCamera(deltaX, deltaY) {
@@ -222,34 +222,6 @@ if (isMobile) {
     isRotating = false;
   });
 }
-
-// if (!isMobile){
-//   document.addEventListener('pointerdown', (e) => {
-//     // 画面右半分のみ、ジョイスティック外
-//     if (joystickActive) return;
-//     if (e.clientX > window.innerWidth / 2) {
-//       isRotating = true;
-//       lastX = e.clientX;
-//       lastY = e.clientY;
-//     }
-//   });
-//   document.addEventListener('pointermove', (e) => {
-//     if (!isRotating) return;
-
-//     const dx = e.clientX - lastX;
-//     const dy = e.clientY - lastY;
-
-//     rotateCamera(dx, dy);
-
-//     lastX = e.clientX;
-//     lastY = e.clientY;
-//   });
-
-//   document.addEventListener('pointerup', () => {
-//     isRotating = false;
-//   });
-// }
-
 
 
 // --------------------
