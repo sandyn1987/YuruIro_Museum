@@ -113,7 +113,7 @@ for (let i = 0; i < artworkCount; i++) {
 // const velocity = new THREE.Vector3();
 // const direction = new THREE.Vector3();
 
-let controls;
+let controls = null;
 const keyState = {};
 
 if (!isMobile) {
