@@ -102,6 +102,7 @@ for (let i = 0; i < artworkCount; i++) {
 /* =========================
    移動操作（FPS風・ゆっくり）
 ========================= */
+// PC操作のみのコード
 // const controls = new PointerLockControls(camera, document.body);
 // document.body.addEventListener('click', () => controls.lock());
 
@@ -126,47 +127,94 @@ if (!isMobile) {
   document.addEventListener('keydown', e => keyState[e.code] = true);
   document.addEventListener('keyup', e => keyState[e.code] = false);
 }
-
-// タッチ操作対応
+// カメラ回転
 let yaw = 0;
 let pitch = 0;
+
+function rotateCamera(deltaX, deltaY) {
+  const ROTATE_SPEED = 0.002;
+
+  yaw   -= deltaX * ROTATE_SPEED;
+  pitch -= deltaY * ROTATE_SPEED;
+
+  // 上下の見すぎ防止
+  pitch = Math.max(
+    -Math.PI / 2 + 0.01,
+    Math.min(Math.PI / 2 - 0.01, pitch)
+  );
+
+  camera.rotation.order = 'YXZ';
+  camera.rotation.y = yaw;
+  camera.rotation.x = pitch;
+  camera.rotation.z = 0; // ★ロール完全禁止
+}
+
+// 仮想ジョイスティック移動
+let moveX = 0;
+let moveY = 0;
+let joystickActive = false;
+let startX = 0;
+let startY = 0;
+
+const joystick = document.getElementById('joystick-area');
+const joystickBase = document.getElementById('joystick-base');
+const joystickStick = document.getElementById('joystick-stick');
+
+// 右画面半分ドラッグで回転
+let isRotating = false;
 let lastX = 0;
 let lastY = 0;
-let touching = false;
-let movingForward = false;
 
-if (isMobile) {
-  const sensitivity = 0.002;
+if (!isMobile){
+  document.addEventListener('pointerdown', (e) => {
+    // 画面右半分のみ、ジョイスティック外
+    if (joystickActive) return;
+    if (e.clientX > window.innerWidth / 2) {
+      isRotating = true;
+      lastX = e.clientX;
+      lastY = e.clientY;
+    }
+  });
+  document.addEventListener('pointermove', (e) => {
+    if (!isRotating) return;
 
-  window.addEventListener('touchstart', e => {
-    touching = true;
-    movingForward = true;
-    lastX = e.touches[0].clientX;
-    lastY = e.touches[0].clientY;
-  }, { passive: true });
+    const dx = e.clientX - lastX;
+    const dy = e.clientY - lastY;
 
-  window.addEventListener('touchmove', e => {
-    if (!touching) return;
+    rotateCamera(dx, dy);
 
-    const x = e.touches[0].clientX;
-    const y = e.touches[0].clientY;
+    lastX = e.clientX;
+    lastY = e.clientY;
+  });
 
-    yaw   -= (x - lastX) * sensitivity;
-    pitch -= (y - lastY) * sensitivity;
-
-    pitch = Math.max(-Math.PI / 2 + 0.1, Math.min(Math.PI / 2 - 0.1, pitch));
-
-    camera.rotation.set(pitch, yaw, 0);
-
-    lastX = x;
-    lastY = y;
-  }, { passive: true });
-
-  window.addEventListener('touchend', () => {
-    touching = false;
-    movingForward = false;
+  document.addEventListener('pointerup', () => {
+    isRotating = false;
   });
 }
+
+joystick.addEventListener('pointerdown', (e) => {
+  joystickActive = true;
+  startX = e.clientX;
+  startY = e.clientY;
+});
+
+window.addEventListener('pointermove', (e) => {
+  if (!joystickActive) return;
+
+  const dx = e.clientX - startX;
+  const dy = e.clientY - startY;
+
+  moveX = THREE.MathUtils.clamp(dx / 40, -1, 1);
+  moveY = THREE.MathUtils.clamp(dy / 40, -1, 1);
+});
+
+window.addEventListener('pointerup', () => {
+  joystickActive = false;
+  moveX = 0;
+  moveY = 0;
+});
+
+
 
 // --------------------
 // 移動ロジック共通
@@ -177,10 +225,27 @@ const speed = isMobile ? 0.03 : 0.06;
 
 function updateMovement() {
   if (isMobile) {
-    if (movingForward) {
-      camera.getWorldDirection(direction);
-      camera.position.addScaledVector(direction, speed);
-    }
+    // moveX, moveY は仮想スティックから取得（-1〜1）
+    if (moveX !== 0 || moveY !== 0) {
+
+      // 前方向（XZ平面）
+      const forward = new THREE.Vector3();
+      camera.getWorldDirection(forward);
+      forward.y = 0;
+      forward.normalize();
+
+      // 右方向
+      const right = new THREE.Vector3();
+      right.crossVectors(forward, camera.up).normalize();
+
+      // 移動
+      camera.position.addScaledVector(forward, moveY * speed);
+      camera.position.addScaledVector(right,   moveX * speed);
+    }    
+    // if (movingForward) {
+    //   camera.getWorldDirection(direction);
+    //   camera.position.addScaledVector(direction, speed);
+    // }
   } else {
     direction.set(0, 0, 0);
     if (keyState['KeyS']) direction.z -= 1;

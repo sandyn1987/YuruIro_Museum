@@ -1,0 +1,56 @@
+html, body {
+  margin: 0;
+  padding: 0;
+  overflow: hidden;
+  touch-action: none;
+}
+
+#three-canvas {
+  position: fixed;
+  inset: 0;
+}
+
+/* 仮想スティック全体 */
+#joystick-area {
+  position: fixed;
+  left: 20px;
+  bottom: 20px;
+  width: 140px;
+  height: 140px;
+  z-index: 10;
+  touch-action: none;
+}
+
+/* ベース（円） */
+#joystick-base {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.15);
+  border: 2px solid rgba(255, 255, 255, 0.3);
+}
+
+/* スティック */
+#joystick-stick {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 60px;
+  height: 60px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.6);
+  transform: translate(-50%, -50%);
+}
+
+/* デフォルトは非表示（PC想定） */
+#joystick-area {
+  display: none;
+}
+
+/* タッチデバイス（スマホ・タブレット）のみ表示 */
+@media (hover: none) and (pointer: coarse) {
+  #joystick-area {
+    display: block;
+  }
+}

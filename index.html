@@ -3,6 +3,8 @@
 <head>
   <meta charset="utf-8" />
   <title>Virtual Museum</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+  <link rel="stylesheet" href="style.css">
   <script type="importmap">
   {
     "imports": {
@@ -16,6 +18,15 @@
   </style>
 </head>
 <body>
+  <!-- Three.js描画 -->
+  <canvas id="three-canvas"></canvas>
+
+  <!-- 仮想スティック -->
+  <div id="joystick-area">
+    <div id="joystick-base">
+      <div id="joystick-stick"></div>
+    </div>
+  </div>
   <script type="module" src="./main.js"></script>
 </body>
 </html>
