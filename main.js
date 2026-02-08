@@ -10,6 +10,7 @@ import { PointerLockControls } from 'https://cdn.jsdelivr.net/npm/three@0.160.0/
 ========================= */
 const scene = new THREE.Scene();
 scene.background = new THREE.Color(0xf2f2f2);
+const isMobile = /iPhone|iPad|Android/i.test(navigator.userAgent);
 
 const camera = new THREE.PerspectiveCamera(
   75,
@@ -25,6 +26,53 @@ renderer.outputColorSpace = THREE.SRGBColorSpace;
 renderer.shadowMap.enabled = true;
 renderer.shadowMap.type = THREE.PCFSoftShadowMap;
 document.body.appendChild(renderer.domElement);
+
+// タッチ操作対応
+let yaw = 0;
+let pitch = 0;
+let lastX = 0;
+let lastY = 0;
+let touching = false;
+const speed = 0.03;
+
+const sensitivity = 0.002;
+
+window.addEventListener('touchstart', e => {
+  touching = true;
+  lastX = e.touches[0].clientX;
+  lastY = e.touches[0].clientY;
+});
+
+window.addEventListener('touchmove', e => {
+  if (!touching) return;
+
+  const x = e.touches[0].clientX;
+  const y = e.touches[0].clientY;
+
+  yaw -= (x - lastX) * sensitivity;
+  pitch -= (y - lastY) * sensitivity;
+
+  pitch = Math.max(-Math.PI / 2 + 0.1, Math.min(Math.PI / 2 - 0.1, pitch));
+
+  camera.rotation.set(pitch, yaw, 0);
+
+  lastX = x;
+  lastY = y;
+});
+
+window.addEventListener('touchend', () => {
+  touching = false;
+});
+
+let movingForward = false;
+
+window.addEventListener('touchstart', () => {
+  movingForward = true;
+});
+
+window.addEventListener('touchend', () => {
+  movingForward = false;
+});
 
 /* =========================
    ライト（美術館向け）
@@ -178,6 +226,12 @@ function animate() {
   
   spotHelpers.forEach(h => h.update());
 
+  if (movingForward) {
+    const dir = new THREE.Vector3();
+    camera.getWorldDirection(dir);
+    camera.position.addScaledVector(dir, speed);
+  }
+  
   renderer.render(scene, camera);
 }
 
