@@ -344,13 +344,12 @@ loader.load('./Virtual_Museum_navy.glb', (gltf) => {
    鑑賞モード用
 ========================= */
 function checkIntersections() {
-
   if (isViewing) return;
   raycaster.setFromCamera(pointer, camera);
   const intersects = raycaster.intersectObjects(artworks, true);
   if (intersects.length > 0) {
     const object = intersects[0].object;
-    if (object.userData.isArtwork) {
+    if (object.userData.isArtwork && !isMobile) {
       showViewButton(object);
       return true;
     }
