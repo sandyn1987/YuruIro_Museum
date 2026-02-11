@@ -27,6 +27,19 @@
       <div id="joystick-stick"></div>
     </div>
   </div>
+
+  <!-- 見るボタン -->
+  <button id="viewButton" style="display:none; position:fixed; bottom:40px; left:50%; transform:translateX(-50%);">
+    見る
+  </button>
+  <!-- 戻るボタン -->
+  <div id="artworkInfo" style="display:none; position:fixed; top:40px; left:50%; transform:translateX(-50%); background:#000; color:#fff; padding:20px;">
+    <h2 id="artworkTitle"></h2>
+    <p id="artworkDescription"></p>
+    <button id="closeButton">戻る</button>
+  </div>
+
   <script type="module" src="./main.js"></script>
 </body>
+
 </html>

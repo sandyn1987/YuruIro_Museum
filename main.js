@@ -1,16 +1,13 @@
 import * as THREE from 'three';
 import { GLTFLoader } from 'https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/loaders/GLTFLoader.js';
 import { PointerLockControls } from 'https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/controls/PointerLockControls.js';
-// import * as THREE from './libs/three.module.js';
-// import { GLTFLoader } from './libs/GLTFLoader.js';
-// import { PointerLockControls } from './libs/PointerLockControls.js';
+import { artworkData } from './artworks.js';
 
 /* =========================
    基本セットアップ
 ========================= */
 const scene = new THREE.Scene();
 scene.background = new THREE.Color(0xf2f2f2);
-
 
 const camera = new THREE.PerspectiveCamera(
   75,
@@ -34,6 +31,20 @@ document.body.appendChild(renderer.domElement);
 
 // デバイス判定
 const isMobile = /iPhone|iPad|Android/i.test(navigator.userAgent);
+
+// 鑑賞モードの状態管理
+let isViewing = false;
+let currentArtwork = null;
+const artworks = [];
+
+let previousCameraPosition = new THREE.Vector3();
+let previousCameraTarget = new THREE.Vector3();
+// raycaster と pointer ベクター
+const raycaster = new THREE.Raycaster();
+const pointer = new THREE.Vector2();
+
+const viewButton = document.getElementById('viewButton');
+const closeButton = document.getElementById('closeButton');
 
 /* =========================
    ライト（美術館向け）
@@ -123,6 +134,11 @@ if (!isMobile) {
 
   document.addEventListener('keydown', e => keyState[e.code] = true);
   document.addEventListener('keyup', e => keyState[e.code] = false);
+  
+  window.addEventListener('pointermove', (event) => {
+    pointer.x = (event.clientX / window.innerWidth) * 2 - 1;
+    pointer.y = -(event.clientY / window.innerHeight) * 2 + 1;
+  });
 }
 // カメラ回転
 let yaw = Math.PI;  // 初期向き：180°
@@ -161,6 +177,8 @@ if (isMobile) {
   const joystickStick = document.getElementById('joystick-stick');
   const JOYSTICK_RADIUS = 40;
 
+  // 仮想ジョイスティック操作
+  // タッチ開始
   joystick.addEventListener('pointerdown', (e) => {
     joystickActive = true;
     startX = e.clientX;
@@ -169,7 +187,7 @@ if (isMobile) {
     joystickBase.style.top = (startY - JOYSTICK_RADIUS) + 'px';
     joystickBase.style.display = 'block';
   });
-
+  // タッチ移動
   window.addEventListener('pointermove', (e) => {
     if (!joystickActive) return;
 
@@ -183,7 +201,7 @@ if (isMobile) {
     joystickStick.style.left = (20 + dx * 0.5) + 'px';
     joystickStick.style.top = (20 + dy * 0.5) + 'px';
   });
-
+  // タッチ終了
   window.addEventListener('pointerup', () => {
     joystickActive = false;
     moveX = 0;
@@ -194,13 +212,23 @@ if (isMobile) {
   });
 
   // モバイル：全画面タッチドラッグで視点回転
+  // タッチ開始
   window.addEventListener('pointerdown', (e) => {
     if (joystickActive) return; // ジョイスティック使用中は無効
+    // --- Raycast用座標更新 ---
+    pointer.x = (e.clientX / window.innerWidth) * 2 - 1;
+    pointer.y = -(e.clientY / window.innerHeight) * 2 + 1;
+    const hit = checkIntersections();
+    if (hit) {
+      // 作品に触れたなら回転開始しない
+      return;
+    }
+    // 回転開始
     isRotating = true;
     lastX = e.clientX;
     lastY = e.clientY;
   });
-
+  // タッチ移動
   window.addEventListener('pointermove', (e) => {
     if (!isRotating) return;
 
@@ -212,12 +240,11 @@ if (isMobile) {
     lastX = e.clientX;
     lastY = e.clientY;
   });
-
+  // タッチ終了
   window.addEventListener('pointerup', () => {
     isRotating = false;
   });
 }
-
 
 // --------------------
 // 移動ロジック共通
@@ -286,7 +313,7 @@ loader.load('./Virtual_Museum_navy.glb', (gltf) => {
   const model = gltf.scene;
 
   model.traverse((obj) => {
-    if (obj.isMesh && artworkTextures[obj.name]) {
+    if (obj.isMesh && artworkTextures[obj.name] && artworkData[obj.name]) {
 
       const tex = textureLoader.load(artworkTextures[obj.name]);
       tex.colorSpace = THREE.SRGBColorSpace;
@@ -298,12 +325,103 @@ loader.load('./Virtual_Museum_navy.glb', (gltf) => {
         metalness: 0.0,
       });
 
+      // アートワーク情報をオブジェクトに追加
+      obj.userData.isArtwork = true;
+      obj.userData.title = artworkData[obj.name].title;
+      obj.userData.description = artworkData[obj.name].description;
+      obj.userData.viewingDistance = artworkData[obj.name].viewingDistance;
+
       console.log(`Artwork applied: ${obj.name}`);
+      artworks.push(obj);
     }
   });
 
   scene.add(model);
 });
+
+
+
+/* =========================
+   鑑賞モード用
+========================= */
+function checkIntersections() {
+
+  if (isViewing) return;
+  raycaster.setFromCamera(pointer, camera);
+  const intersects = raycaster.intersectObjects(artworks, true);
+  if (intersects.length > 0) {
+    const object = intersects[0].object;
+    if (object.userData.isArtwork) {
+      showViewButton(object);
+      return true;
+    }
+
+  } else {
+    hideViewButton();
+    return false;
+  }
+}
+
+function showViewButton(artwork) {
+  currentArtwork = artwork;
+  viewButton.style.display = 'block';
+}
+
+function hideViewButton() {
+  viewButton.style.display = 'none';
+  currentArtwork = null;
+}
+
+function enterViewMode(artwork) {
+
+  isViewing = true;
+
+  // カメラ保存
+  previousCameraPosition.copy(camera.position);
+  previousCameraTarget.copy(controls.target);
+
+  // 操作ロック
+  controls.enabled = false;
+
+  const distance = artwork.userData.viewingDistance;
+
+  const direction = new THREE.Vector3(0, 0, 1);
+  direction.applyQuaternion(artwork.quaternion);
+
+  const targetPosition = artwork.position.clone()
+    .add(direction.multiplyScalar(distance));
+
+  camera.position.copy(targetPosition);
+  camera.lookAt(artwork.position);
+
+  showArtworkInfo(
+    artwork.userData.title,
+    artwork.userData.description
+  );
+
+  hideViewButton();
+}
+
+function showArtworkInfo(title, description) {
+
+  document.getElementById('artworkTitle').textContent = title;
+  document.getElementById('artworkDescription').textContent = description;
+
+  document.getElementById('artworkInfo').style.display = 'block';
+}
+
+function exitViewMode() {
+
+  isViewing = false;
+
+  camera.position.copy(previousCameraPosition);
+  controls.target.copy(previousCameraTarget);
+
+  controls.enabled = true;
+  controls.update();
+
+  document.getElementById('artworkInfo').style.display = 'none';
+}
 
 /* =========================
    ウィンドウリサイズ対応
@@ -319,6 +437,8 @@ window.addEventListener('resize', () => {
 ========================= */
 function animate() {
   requestAnimationFrame(animate);
+
+  checkIntersections();
 
   updateMovement();
   // direction.set(0, 0, 0);
