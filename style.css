@@ -42,28 +42,6 @@ html, body {
   left: 20px;
   transition: all 0.05s ease-out;
 }
-/* ベース（円） */
-/* #joystick-base {
-  position: relative;
-  width: 100%;
-  height: 100%;
-  border-radius: 50%;
-  background: rgba(255, 255, 255, 0.15);
-  border: 2px solid rgba(255, 255, 255, 0.3);
-} */
-
-/* スティック */
-/* #joystick-stick {
-  position: absolute;
-  left: 50%;
-  top: 50%;
-  width: 60px;
-  height: 60px;
-  border-radius: 50%;
-  background: rgba(255, 255, 255, 0.6);
-  transform: translate(-50%, -50%);
-} */
-
 
 /* デフォルトは非表示（PC想定） */
 #joystick-area {
@@ -75,4 +53,34 @@ html, body {
   #joystick-area {
     display: block;
   }
+}
+
+#artworkInfo {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  width: 100%;
+
+  padding: 10px;
+  box-sizing: border-box;
+
+  background: rgba(0, 0, 0, 0.6); /* ← 半透明 */
+  color: white;
+
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+
+  backdrop-filter: blur(5px); /* おしゃれ効果（任意） */
+}
+
+.hidden {
+  display: none !important;
+}
+
+#closeButton {
+  margin-top: 10px;
+  padding: 5px 5px;
+  font-size: 10px;
+  cursor: pointer;
 }

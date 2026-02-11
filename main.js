@@ -45,6 +45,10 @@ const pointer = new THREE.Vector2();
 
 const viewButton = document.getElementById('viewButton');
 const closeButton = document.getElementById('closeButton');
+closeButton.addEventListener('click', (event) => {
+  event.stopPropagation();   // ← これ重要
+  exitViewMode();
+});
 
 /* =========================
    ライト（美術館向け）
@@ -109,18 +113,6 @@ for (let i = 0; i < artworkCount; i++) {
 /* =========================
    移動操作（FPS風・ゆっくり）
 ========================= */
-// PC操作のみのコード
-// const controls = new PointerLockControls(camera, document.body);
-// document.body.addEventListener('click', () => controls.lock());
-
-// const keys = {};
-// document.addEventListener('keydown', (e) => keys[e.code] = true);
-// document.addEventListener('keyup', (e) => keys[e.code] = false);
-
-// const moveSpeed = 3.0;
-// const velocity = new THREE.Vector3();
-// const direction = new THREE.Vector3();
-
 let controls = null;
 const keyState = {};
 
@@ -129,6 +121,7 @@ if (!isMobile) {
   controls = new PointerLockControls(camera, document.body);
 
   document.body.addEventListener('click', () => {
+    if (isViewing) return;
     controls.lock();
   });
 
@@ -139,6 +132,12 @@ if (!isMobile) {
     pointer.x = (event.clientX / window.innerWidth) * 2 - 1;
     pointer.y = -(event.clientY / window.innerHeight) * 2 + 1;
   });
+  document.addEventListener('keydown', (e) => {
+    keyState[e.code] = true;
+    if (e.code === 'KeyX') {
+      requestEnterViewMode();
+    }
+  });  
 }
 // カメラ回転
 let yaw = Math.PI;  // 初期向き：180°
@@ -221,6 +220,7 @@ if (isMobile) {
     const hit = checkIntersections();
     if (hit) {
       // 作品に触れたなら回転開始しない
+      requestEnterViewMode();
       return;
     }
     // 回転開始
@@ -327,6 +327,7 @@ loader.load('./Virtual_Museum_navy.glb', (gltf) => {
 
       // アートワーク情報をオブジェクトに追加
       obj.userData.isArtwork = true;
+      obj.userData.author = artworkData[obj.name].author;
       obj.userData.title = artworkData[obj.name].title;
       obj.userData.description = artworkData[obj.name].description;
       obj.userData.viewingDistance = artworkData[obj.name].viewingDistance;
@@ -338,8 +339,6 @@ loader.load('./Virtual_Museum_navy.glb', (gltf) => {
 
   scene.add(model);
 });
-
-
 
 /* =========================
    鑑賞モード用
@@ -373,54 +372,53 @@ function hideViewButton() {
 }
 
 function enterViewMode(artwork) {
-
   isViewing = true;
-
-  // カメラ保存
+  hideViewButton();
+  // PCならポインタロック解除
+  if (controls && controls.isLocked) {
+    controls.unlock();
+  }
+  if (controls) {
+    controls.enabled = false;
+  }
   previousCameraPosition.copy(camera.position);
-  previousCameraTarget.copy(controls.target);
-
-  // 操作ロック
-  controls.enabled = false;
-
   const distance = artwork.userData.viewingDistance;
-
-  const direction = new THREE.Vector3(0, 0, 1);
+  const direction = new THREE.Vector3(0, 1, 0);
   direction.applyQuaternion(artwork.quaternion);
-
   const targetPosition = artwork.position.clone()
     .add(direction.multiplyScalar(distance));
-
   camera.position.copy(targetPosition);
   camera.lookAt(artwork.position);
-
   showArtworkInfo(
+    artwork.userData.author,
     artwork.userData.title,
     artwork.userData.description
   );
-
-  hideViewButton();
 }
 
-function showArtworkInfo(title, description) {
-
-  document.getElementById('artworkTitle').textContent = title;
+function showArtworkInfo(author, title, description) {
+  // アートワーク情報表示
+  document.getElementById('artworkTitle').textContent = `${author}  -  「${title}」`;
   document.getElementById('artworkDescription').textContent = description;
-
-  document.getElementById('artworkInfo').style.display = 'block';
+  // hidden クラス削除
+  document.getElementById('artworkInfo').classList.remove('hidden');
 }
 
 function exitViewMode() {
-
   isViewing = false;
-
   camera.position.copy(previousCameraPosition);
-  controls.target.copy(previousCameraTarget);
+  if (controls) {
+    controls.enabled = true;
+  }
+  // hidden クラス追加
+  document.getElementById('artworkInfo').classList.add('hidden');
+}
 
-  controls.enabled = true;
-  controls.update();
-
-  document.getElementById('artworkInfo').style.display = 'none';
+// 鑑賞モード入口
+function requestEnterViewMode() {
+  if (isViewing) return;
+  if (!currentArtwork) return;
+  enterViewMode(currentArtwork);
 }
 
 /* =========================
