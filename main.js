@@ -349,7 +349,7 @@ function checkIntersections() {
   const intersects = raycaster.intersectObjects(artworks, true);
   if (intersects.length > 0) {
     const object = intersects[0].object;
-    if (object.userData.isArtwork && !isMobile) {
+    if (object.userData.isArtwork) {
       showViewButton(object);
       return true;
     }
@@ -362,6 +362,7 @@ function checkIntersections() {
 
 function showViewButton(artwork) {
   currentArtwork = artwork;
+  if (isMobile) {return ;} // モバイルでは非表示
   viewButton.style.display = 'block';
 }
 
