@@ -423,7 +423,7 @@ function checkIntersections() {
 
 function showViewButton(artwork) {
   currentArtwork = artwork;
-  if (isMobile) return; // モバイルでは非表示
+  // if (isMobile) {return ;} // モバイルでは非表示
   viewButton.style.display = 'block';
 }
 
