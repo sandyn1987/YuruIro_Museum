@@ -32,6 +32,12 @@ document.body.appendChild(renderer.domElement);
 // デバイス判定
 const isMobile = /iPhone|iPad|Android/i.test(navigator.userAgent);
 
+// スポットライト関連
+const SPOT_OFFSET = {
+  height: 0.4,
+  distance: 1.2
+};
+
 // 鑑賞モードの状態管理
 let isViewing = false;
 let currentArtwork = null;
@@ -59,15 +65,17 @@ const startPos = new THREE.Vector3(-4.0, 1.6, 4.8);
 const spacingX = 2.0;
 const spotHelpers = [];
 
-function createArtworkSpotLight(scene, position) {
-  console.log('createArtworkSpotLight called', position);
+function createArtworkSpotLight(scene, artwork, direction) {
+  console.log('createArtworkSpotLight called', artwork.position, direction);
   console.log('scene =', scene);
+  const position = artwork.position.clone();
+  const dirVector = getDirectionVector(direction);
 
   const spot = new THREE.SpotLight(0xfff1e0, 1.2);
   spot.position.set(
-    position.x,
-    position.y + 0.4, // 上
-    position.z - 1.2  // 手前
+    position.x + SPOT_OFFSET.distance * dirVector.x,
+    position.y + SPOT_OFFSET.height,
+    position.z + SPOT_OFFSET.distance * dirVector.z
   );
 
   spot.intensity = 5.0;
@@ -88,6 +96,45 @@ function createArtworkSpotLight(scene, position) {
 
   return spot;
 }
+// function createArtworkSpotLight(scene, position) {
+//   console.log('createArtworkSpotLight called', position);
+//   console.log('scene =', scene);
+
+//   const spot = new THREE.SpotLight(0xfff1e0, 1.2);
+//   spot.position.set(
+//     position.x,
+//     position.y + 0.4, // 上
+//     position.z - 1.2  // 手前
+//   );
+
+//   spot.intensity = 5.0;
+//   spot.angle = Math.PI / 6;
+//   spot.penumbra = 0.4;
+//   spot.decay = 2;
+//   spot.distance = 10;
+//   spot.castShadow = true;
+//   spot.target.position.copy(position);
+
+//   scene.add(spot);
+
+//   // ヘルパー追加
+//   const helper = new THREE.SpotLightHelper(spot);
+//   // scene.add(helper);
+//   // spotHelpers.push(helper);
+//   // helper.update();
+
+//   return spot;
+// }
+function getDirectionVector(direction) {
+  switch (direction) {
+    case "+X": return new THREE.Vector3(1, 0, 0);
+    case "-X": return new THREE.Vector3(-1, 0, 0);
+    case "+Z": return new THREE.Vector3(0, 0, 1);
+    case "-Z": return new THREE.Vector3(0, 0, -1);
+    default:   return new THREE.Vector3(0, 0, 1);
+  }
+}
+
 // 環境光
 const ambientLight = new THREE.AmbientLight(0xffffff, 0.6);
 scene.add(ambientLight);
@@ -99,16 +146,16 @@ const hemiLight = new THREE.HemisphereLight(
 );
 scene.add(hemiLight);
 console.log('scene =', scene);
-// 各アートワーク用スポットライト
-for (let i = 0; i < artworkCount; i++) {
-  const artworkPos = new THREE.Vector3(
-    startPos.x + i * spacingX,
-    startPos.y,
-    startPos.z
-  );
+// // 各アートワーク用スポットライト
+// for (let i = 0; i < artworkCount; i++) {
+//   const artworkPos = new THREE.Vector3(
+//     startPos.x + i * spacingX,
+//     startPos.y,
+//     startPos.z
+//   );
 
-  createArtworkSpotLight(scene, artworkPos);
-}
+//   createArtworkSpotLight(scene, artworkPos);
+// }
 
 /* =========================
    移動操作（FPS風・ゆっくり）
@@ -314,7 +361,7 @@ loader.load('./Virtual_Museum_navy.glb', (gltf) => {
 
   model.traverse((obj) => {
     if (obj.isMesh && artworkTextures[obj.name] && artworkData[obj.name]) {
-
+      const data = artworkData[obj.name];
       const tex = textureLoader.load(artworkTextures[obj.name]);
       tex.colorSpace = THREE.SRGBColorSpace;
       tex.flipY = false; // glTF対策
@@ -324,6 +371,18 @@ loader.load('./Virtual_Museum_navy.glb', (gltf) => {
         roughness: 0.6,
         metalness: 0.0,
       });
+      obj.castShadow = true;
+      obj.receiveShadow = true;
+
+      // 位置と向きの設定
+      if (data.position) {
+        obj.position.set(
+          data.position.x,
+          data.position.y,
+          data.position.z
+        );
+      }
+      obj.userData.direction = data.direction;
 
       // アートワーク情報をオブジェクトに追加
       obj.userData.isArtwork = true;
@@ -334,6 +393,8 @@ loader.load('./Virtual_Museum_navy.glb', (gltf) => {
 
       console.log(`Artwork applied: ${obj.name}`);
       artworks.push(obj);
+
+      createArtworkSpotLight(scene, obj, data.direction);
     }
   });
 
