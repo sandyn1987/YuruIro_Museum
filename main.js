@@ -38,47 +38,38 @@ const isMobile = /iPhone|iPad|Android/i.test(navigator.userAgent);
 /* =========================
    ライト（美術館向け）
 ========================= */
-// scene.add(new THREE.AmbientLight(0xffffff, 0.6));
-// const dirLight = new THREE.DirectionalLight(0xffffff, 1.0);
-// dirLight.position.set(5, 10, 5);
-// scene.add(dirLight);
+// アートワーク用スポットライト設定
 const artworkCount = 5;
-const startPos = new THREE.Vector3(-4.0, -4.8, 1.6);
+const startPos = new THREE.Vector3(-4.0, 1.6, 4.8);
 const spacingX = 2.0;
 const spotHelpers = [];
 
 function createArtworkSpotLight(scene, position) {
   console.log('createArtworkSpotLight called', position);
   console.log('scene =', scene);
-  const spot = new THREE.SpotLight(0xfff1e0, 1.2);
 
+  const spot = new THREE.SpotLight(0xfff1e0, 1.2);
   spot.position.set(
     position.x,
-    position.y + 1.2, // 手前
-    position.z + 1.0  // 上
+    position.y + 0.4, // 上
+    position.z - 1.2  // 手前
   );
 
-  spot.intensity = 10.0;
-  spot.angle = Math.PI / 4;
+  spot.intensity = 5.0;
+  spot.angle = Math.PI / 6;
   spot.penumbra = 0.4;
   spot.decay = 2;
   spot.distance = 10;
-
   spot.castShadow = true;
+  spot.target.position.copy(position);
 
-  const target = new THREE.Object3D();
-  target.position.copy(position);
-  scene.add(target);
-
-  spot.target = target;
   scene.add(spot);
-  scene.add(spot.target);
-  spot.target.updateMatrixWorld();
 
+  // ヘルパー追加
   const helper = new THREE.SpotLightHelper(spot);
-  scene.add(helper);
-  spotHelpers.push(helper);
-  helper.update();
+  // scene.add(helper);
+  // spotHelpers.push(helper);
+  // helper.update();
 
   return spot;
 }
@@ -291,7 +282,7 @@ const textureLoader = new THREE.TextureLoader();
    glb読み込み
 ========================= */
 const loader = new GLTFLoader();
-loader.load('./Virtual_Museum.glb', (gltf) => {
+loader.load('./Virtual_Museum_navy.glb', (gltf) => {
   const model = gltf.scene;
 
   model.traverse((obj) => {
