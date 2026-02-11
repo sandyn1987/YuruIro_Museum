@@ -71,7 +71,21 @@ html, body {
   flex-direction: column;
   align-items: center;
 
+  max-height: 40%;
+  overflow-y: auto;
+
   backdrop-filter: blur(5px); /* おしゃれ効果（任意） */
+}
+
+#artworkInfo h2 {
+  margin: 0 0 6px 0;   /* 下だけ少し残す */
+  font-size: 18px;     /* 少し小さくしてもOK */
+}
+
+#artworkInfo p {
+  margin: 0;
+  font-size: 14px;
+  line-height: 1.4;
 }
 
 .hidden {
